@@ -6,6 +6,7 @@ import logging
 import bcrypt
 import sendgrid
 from sendgrid.helpers.mail import Mail
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
