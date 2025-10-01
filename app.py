@@ -110,20 +110,68 @@ def send_email(to_email, subject, body):
         logger.error(f"SendGrid email failed: {e}")
         return False
 
-def send_confirmation_email(first_name, last_name, email):
-    body = f"""Hi {first_name} {last_name},
+def send_approval_email(first_name, last_name, email):
+    full_name = f"{first_name} {last_name}"
+    body = f"""Dear {full_name},
 
-We are delighted to let you know that we have successfully received your application. Thank you for showing interest in joining our team. We truly value the time and effort you put into applying.
+We are excited to inform you that your application has been approved — welcome on board!
 
-Our recruitment team will carefully review your details and get back to you within 3 days.
+About the Role:
+================
+As a chat moderator, your role is to engage with customers through our secure web-based platform. You will be replying to messages from users in English, keeping conversations fun, engaging, and creative. Many of these chats may be of a flirty or adult nature, so applicants must feel comfortable handling such conversations while maintaining professionalism and consistency.
 
-If you find this email in your spam or promotions folder, kindly mark it as "Not Spam" so you won't miss our updates.
+Your goal is simple: keep the conversation alive and enjoyable for the user while typing quickly and clearly.
 
-We look forward to the possibility of working together.
+Requirements:
+============
+To succeed as a moderator, you’ll need:
 
-Best regards,
-Work4U Recruitment Team"""
-    return send_email(email, "Thank you for applying with us", body)
+- Excellent written English and creativity in conversation.
+- A computer or laptop (mobile is not supported).
+- A reliable high-speed internet connection.
+- A verified bank account or PayPal account for payments.
+
+Work Hours:
+===========
+You will have the freedom to choose your shifts, but please note that our busiest hours are at peak times of night. Weekend shifts are especially high in traffic and highly recommended for maximizing your earnings. We ask all moderators to commit to a minimum of 12 hours per week, booked in one-hour shifts.
+
+Pay Structure:
+==============
+- Payment: €0.10 (10 Euro cents) per sent message.
+- Experienced moderators can type 80–100+ messages per hour, leading to competitive earnings depending on typing speed and commitment.
+- Payments are calculated from the 1st day of each month to the last day of the same month.
+- All payments are processed and paid on the 3rd day of the following month.
+- Payments are sent via PayPal or direct bank transfer.
+
+Training & Support:
+===================
+Before starting, you’ll receive:
+
+- A training manual covering everything you need to know.
+- A one-on-one training session with an experienced team leader to guide you through the system and best practices.
+- Ongoing support from our team whenever you need assistance.
+
+Freelance Basis:
+================
+Please note, this is a freelance, self-employed role. This gives you flexibility while also requiring you to manage your own time and schedule responsibly.
+
+Next Steps:
+===========
+To proceed, you’ll need to complete a short test to demonstrate your level of English.
+Simply click the link below to get started:
+https://forms.gle/YvgBWxriV2hPfn82A
+
+Once you have submitted your answers, our team will review them carefully. You will receive a response within 3 business days regarding the outcome and the next stage of onboarding.
+
+We are thrilled to have you with us and can’t wait to see you succeed as part of our ChatPlatform team.
+
+Welcome aboard, and let’s get started!
+
+Warm regards,
+Work4U
+Recruitment Team"""
+
+    return send_email(email, "Your Application Has Been Approved", body)
 
 def send_admin_notification(first_name, last_name, applicant_email, language, created_at):
     formatted = created_at.strftime("%B %d, %Y at %I:%M %p")
