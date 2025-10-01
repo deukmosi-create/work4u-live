@@ -132,6 +132,18 @@
             height: 40px;
             width: auto;
         }
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .menu-toggle:hover {
+            color: var(--primary);
+        }
         nav ul {
             display: flex;
             list-style: none;
@@ -145,6 +157,45 @@
             transition: var(--transition);
         }
         nav a:hover {
+            color: var(--primary);
+        }
+        /* Mobile Menu */
+        .mobile-menu {
+            position: fixed;
+            top: 70px;
+            right: 0;
+            background: var(--white);
+            width: 250px;
+            box-shadow: var(--shadow);
+            z-index: 999;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            padding: 20px;
+            max-height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+        .mobile-menu.active {
+            transform: translateX(0);
+        }
+        .mobile-menu ul {
+            list-style: none;
+            padding: 0;
+        }
+        .mobile-menu li {
+            margin-bottom: 15px;
+        }
+        .mobile-menu a {
+            display: block;
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+        .mobile-menu a:hover {
+            background: var(--light-gray);
             color: var(--primary);
         }
         /* Hero Section */
@@ -722,6 +773,13 @@
             }
             .logo-img { height: 35px; }
             .hero-logo-img { height: 70px; }
+            /* Mobile Menu */
+            .menu-toggle {
+                display: block;
+            }
+            nav {
+                display: none;
+            }
         }
         @media (max-width: 768px) {
             h1 { font-size: 2.5rem; }
@@ -794,6 +852,9 @@
             <a href="#hero" class="logo">
                 <img src="https://i.postimg.cc/h4NxtFNg/1547-1519205053-work4u02b.jpg" alt="Work4U Logo" class="logo-img">
             </a>
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
             <nav>
                 <ul>
                     <li><a href="#who-we-are">About</a></li>
@@ -803,6 +864,15 @@
                     <li><a href="#contact">Contact</a></li>
                 </ul>
             </nav>
+            <div class="mobile-menu" id="mobileMenu">
+                <ul>
+                    <li><a href="#who-we-are" onclick="closeMobileMenu()">About</a></li>
+                    <li><a href="#why-choose-us" onclick="closeMobileMenu()">Benefits</a></li>
+                    <li><a href="#hiring-process" onclick="closeMobileMenu()">Process</a></li>
+                    <li><a href="#application-form" onclick="closeMobileMenu()">Apply</a></li>
+                    <li><a href="#contact" onclick="closeMobileMenu()">Contact</a></li>
+                </ul>
+            </div>
         </div>
     </header>
     <!-- Hero Section -->
@@ -1225,6 +1295,26 @@
                 scrollToTopBtn.classList.remove('show');
             }
         });
+        // Mobile Menu Toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+        }
+        // Header scroll effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 100) {
+                header.style.padding = '10px 0';
+                header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+            } else {
+                header.style.padding = '20px 0';
+                header.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+            }
+        });
         // Form submission handler
         document.getElementById('applicationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1274,17 +1364,6 @@
                 // Re-enable button
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Application';
-            }
-        });
-        // Header scroll effect
-        const header = document.getElementById('header');
-        window.addEventListener('scroll', () => {
-            if (window.pageYOffset > 100) {
-                header.style.padding = '10px 0';
-                header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-            } else {
-                header.style.padding = '20px 0';
-                header.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
             }
         });
     </script>
