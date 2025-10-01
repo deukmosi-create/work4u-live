@@ -959,25 +959,25 @@
                     <div class="settings-form">
                         <div class="form-group">
                             <label for="adminName">Full Name</label>
-                            <input type="text" id="adminName" name="adminName" value="Admin User">
+                            <input type="text" id="adminName" name="adminName" value="Admin User" disabled>
                         </div>
                         <div class="form-group">
                             <label for="adminEmail">Email</label>
-                            <input type="email" id="adminEmail" name="adminEmail" value="admin@work4u.com">
+                            <input type="email" id="adminEmail" name="adminEmail" value="admin@work4u.com" disabled>
                         </div>
                         <div class="form-group">
                             <label for="currentPassword">Current Password</label>
-                            <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password">
+                            <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" required>
                         </div>
                         <div class="form-group">
                             <label for="newPassword">New Password</label>
-                            <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password">
+                            <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" required minlength="6">
                         </div>
                         <div class="form-group">
                             <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password">
+                            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" required>
                         </div>
-                        <button type="submit" class="save-btn" id="saveSettingsBtn">Update Profile</button>
+                        <button type="submit" class="save-btn" id="saveSettingsBtn">Update Password</button>
                     </div>
                     <div id="settingsMessage" class="message"></div>
                 </div>
@@ -1110,13 +1110,69 @@
                 });
             });
 
-            document.getElementById('saveSettingsBtn')?.addEventListener('click', function(e) {
+            // Settings form submission
+            document.getElementById('saveSettingsBtn')?.addEventListener('click', async function(e) {
                 e.preventDefault();
+                
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const adminEmail = 'admin@work4u.com'; // Fixed email
+
                 const messageDiv = document.getElementById('settingsMessage');
-                messageDiv.className = 'message success';
-                messageDiv.textContent = 'Profile updated successfully!';
+                messageDiv.className = 'message loading';
+                messageDiv.textContent = 'Updating password...';
                 messageDiv.style.display = 'block';
-                setTimeout(() => { messageDiv.style.display = 'none'; }, 3000);
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = 'All password fields are required.';
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = 'New password and confirmation do not match.';
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = 'New password must be at least 6 characters long.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            currentPassword: currentPassword,
+                            newPassword: newPassword,
+                            confirmPassword: confirmPassword,
+                            email: adminEmail
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        messageDiv.className = 'message success';
+                        messageDiv.textContent = 'Password updated successfully! Please log in again.';
+                        
+                        // Auto-logout after 2 seconds
+                        setTimeout(() => {
+                            localStorage.removeItem('work4u_admin_auth');
+                            window.location.reload(); // Reload to show login page
+                        }, 2000);
+                    } else {
+                        throw new Error(result.message || 'Password change failed');
+                    }
+                } catch (error) {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = error.message || 'Failed to update password. Please try again.';
+                }
             });
         }
 
