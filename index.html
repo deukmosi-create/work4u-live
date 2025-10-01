@@ -162,15 +162,16 @@
             z-index: 2;
             max-width: 700px;
         }
-        .hero-logo {
+        .hero-tagline {
             text-align: center;
             margin-bottom: 30px;
         }
-        .hero-logo-img {
-            height: 80px;
-            width: auto;
-            margin: 0 auto;
-            display: block;
+        .hero-tagline h1 {
+            font-size: 2.5rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+            font-weight: 600;
         }
         .hero p {
             color: rgba(255, 255, 255, 0.9);
@@ -808,8 +809,8 @@
     <section id="hero" class="hero">
         <div class="container">
             <div class="hero-content">
-                <div class="hero-logo">
-                    <img src="https://i.postimg.cc/h4NxtFNg/1547-1519205053-work4u02b.jpg" alt="Work4U Logo" class="hero-logo-img">
+                <div class="hero-tagline">
+                    <h1>Are you looking to be a moderator?</h1>
                 </div>
                 <p>We are a chat moderation company dedicated to offering reliable customer service solutions. Join our team of dedicated professionals and be part of a company that values excellence and trust.</p>
                 <a href="#application-form" class="btn hero-btn">Apply Now</a>
@@ -1242,7 +1243,6 @@
                 jsonData[key] = value;
             });
             try {
-                // ✅ FIXED: Use relative path
                 const response = await fetch('/apply', {
                     method: 'POST',
                     headers: {
