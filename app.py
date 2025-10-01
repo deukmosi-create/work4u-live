@@ -169,7 +169,7 @@ def send_approval_email(first_name, last_name, email):
     body_html = f"""
     <p>Dear {full_name},</p>
 
-    <p>We are excited to inform you that your application has been approved — welcome on board! 🌟</p>
+    <p>We are excited to inform you that your application has been approved — welcome on board!</p>
 
     <p><strong>About the Role</strong><br>
     As a chat moderator, your role is to engage with customers through our secure web-based platform. You will be replying to messages from users in English, keeping conversations fun, engaging, and creative. Many of these chats may be of a flirty or adult nature, so applicants must feel comfortable handling such conversations while maintaining professionalism and consistency.</p>
@@ -186,7 +186,7 @@ def send_approval_email(first_name, last_name, email):
     </ul>
 
     <p><strong>Work Hours</strong><br>
-    You will have the freedom to choose your shifts, but please note that our busiest hours are at peak times of night. Weekend shifts are especially high in traffic and highly recommended for maximizing your earnings. We ask all moderators to commit to a minimum of 12 hours per week, booked in one-hour shifts.</p>
+    You will have the freedom to choose your shifts, but please note that our busiest hours are at peak times of night. Weekend shifts are especially high in traffic and highly recommended for maximizing your earnings. We ask all moderators to commit to a minimum of 15 hours per week.</p>
 
     <p><strong>Pay Structure</strong><br>
     Payment: €0.10 (10 Euro cents) per sent message.<br>
@@ -208,32 +208,38 @@ def send_approval_email(first_name, last_name, email):
 
     <p><strong>Next Steps</strong><br>
     To proceed, you’ll need to complete a short test to demonstrate your level of English.<br>
-    👉 Simply click the link below to get started:<br>
+    Simply click the link below to get started:<br>
     <a href="https://forms.gle/YvgBWxriV2hPfn82A">https://forms.gle/YvgBWxriV2hPfn82A</a><br>
     Once you have submitted your answers, our team will review them carefully. You will receive a response within 3 business days regarding the outcome and the next stage of onboarding.</p>
 
     <p>We are thrilled to have you with us and can’t wait to see you succeed as part of our ChatPlatform team.</p>
 
-    <p>Welcome aboard, and let’s get started! 🚀</p>
+    <p>Welcome aboard, and let’s get started!</p>
 
     <p>Warm regards,<br>
     Work4U<br>
     Recruitment Team</p>
     """
-    return send_email_html(email, "Your Application Has Been Approved", body_html)
+    return send_email_html(email, "Your Application Status", body_html)
 
 def send_rejection_email(first_name, last_name, email):
-    body = f"""Hi {first_name} {last_name},
+    full_name = f"{first_name} {last_name}"
+    body_html = f"""
+    <p>Dear {full_name},</p>
 
-Thank you for your application and interest in joining Work4U.
+    <p>Thank you very much for taking the time to apply and complete our assessment for the Chat Moderator position.</p>
 
-After careful consideration, we regret to inform you that we cannot proceed with your application at this time. We appreciate the time and effort you invested in your application.
+    <p>After reviewing your submission carefully, we regret to inform you that your application has not been successful at this time.</p>
 
-We encourage you to apply for future opportunities with us.
+    <p>Please don’t be discouraged — competition for this role is very high, and many strong candidates apply. We truly appreciate the effort you put into your application, and we encourage you to reapply in the future should another opportunity arise.</p>
 
-Best regards,
-Work4U Recruitment Team"""
-    return send_email(email, "Regarding Your Application", body)
+    <p>We wish you the very best in your future endeavors and thank you again for your interest in working with us.</p>
+
+    <p>Warm regards,<br>
+    Work4U<br>
+    Recruitment Team</p>
+    """
+    return send_email_html(email, "Regarding Your Application", body_html)
 
 # --- API Routes ---
 @app.route('/apply', methods=['POST'])
