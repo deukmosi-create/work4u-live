@@ -67,8 +67,8 @@ def init_db():
         if "duplicate column name" not in str(e):
             logger.error(f"Error adding status column: {e}")
     
-    default_email = "admin@work4u.com"
-    default_password = "admin123"
+    default_email = "deukmosi@gmail.com"
+    default_password = "Deuk@2002"
     cursor.execute("SELECT COUNT(*) FROM admins WHERE email = ?", (default_email,))
     if cursor.fetchone()[0] == 0:
         hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt())
