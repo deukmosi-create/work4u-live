@@ -1110,14 +1110,14 @@
                 });
             });
 
-            // Settings form submission
+            // ✅ FULL PASSWORD CHANGE HANDLER
             document.getElementById('saveSettingsBtn')?.addEventListener('click', async function(e) {
                 e.preventDefault();
                 
                 const currentPassword = document.getElementById('currentPassword').value;
                 const newPassword = document.getElementById('newPassword').value;
                 const confirmPassword = document.getElementById('confirmPassword').value;
-                const adminEmail = 'admin@work4u.com'; // Fixed email
+                const adminEmail = 'admin@work4u.com';
 
                 const messageDiv = document.getElementById('settingsMessage');
                 messageDiv.className = 'message loading';
@@ -1164,7 +1164,7 @@
                         // Auto-logout after 2 seconds
                         setTimeout(() => {
                             localStorage.removeItem('work4u_admin_auth');
-                            window.location.reload(); // Reload to show login page
+                            window.location.reload();
                         }, 2000);
                     } else {
                         throw new Error(result.message || 'Password change failed');
@@ -1179,7 +1179,7 @@
         async function loadApplicationsFromBackend() {
             const tableBody = document.getElementById('applicationsTableBody');
             try {
-                const response = await fetch('/applications'); // ✅ FIXED: relative path
+                const response = await fetch('/applications');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 applicationsData = await response.json();
                 tableBody.innerHTML = '';
@@ -1310,7 +1310,7 @@
             messageDiv.style.display = 'block';
 
             try {
-                const response = await fetch(`/applications/${appId}/approve`, { // ✅ FIXED
+                const response = await fetch(`/applications/${appId}/approve`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -1340,7 +1340,7 @@
             messageDiv.style.display = 'block';
 
             try {
-                const response = await fetch(`/applications/${appId}/reject`, { // ✅ FIXED
+                const response = await fetch(`/applications/${appId}/reject`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });

@@ -67,8 +67,8 @@ def init_db():
         if "duplicate column name" not in str(e):
             logger.error(f"Error adding status column: {e}")
     
-    default_email = "deukmosi@gmail.com"
-    default_password = "Deuk@2002"
+    default_email = "admin@work4u.com"
+    default_password = "admin123"
     cursor.execute("SELECT COUNT(*) FROM admins WHERE email = ?", (default_email,))
     if cursor.fetchone()[0] == 0:
         hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt())
@@ -209,7 +209,7 @@ def send_approval_email(first_name, last_name, email):
     <p><strong>Next Steps</strong><br>
     To proceed, you’ll need to complete a short test to demonstrate your level of English.<br>
     Simply click the link below to get started:<br>
-    <a href="https://forms.gle/YvgBWxriV2hPfn82A">https://forms.gle/YvgBWxriV2hPfn82A</a><br>
+    <a href="https://forms.gle/iai3wEkJFjJa6YUD9">https://forms.gle/iai3wEkJFjJa6YUD9</a><br>
     Once you have submitted your answers, our team will review them carefully. You will receive a response within 3 business days regarding the outcome and the next stage of onboarding.</p>
 
     <p>We are thrilled to have you with us and can’t wait to see you succeed as part of our ChatPlatform team.</p>
