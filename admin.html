@@ -1020,34 +1020,35 @@
             }
         }
 
+        // ✅ UPDATED: Login now calls /login API
         async function handleLogin(email, password) {
-    try {
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            isAuthenticated = true;
-            localStorage.setItem('work4u_admin_auth', 'true');
-            loginPage.style.display = 'none';
-            dashboard.style.display = 'block';
-            showToast('Login successful!', 'success');
-            loadApplicationsFromBackend();
-            updateStats();
-            initCharts();
-        } else {
-            throw new Error(result.message || 'Invalid credentials');
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    isAuthenticated = true;
+                    localStorage.setItem('work4u_admin_auth', 'true');
+                    loginPage.style.display = 'none';
+                    dashboard.style.display = 'block';
+                    showToast('Login successful!', 'success');
+                    loadApplicationsFromBackend();
+                    updateStats();
+                    initCharts();
+                } else {
+                    throw new Error(result.message || 'Invalid credentials');
+                }
+            } catch (error) {
+                const messageDiv = document.getElementById('loginMessage');
+                messageDiv.className = 'message error';
+                messageDiv.textContent = error.message || 'Login failed. Please try again.';
+                messageDiv.style.display = 'block';
+            }
         }
-    } catch (error) {
-        const messageDiv = document.getElementById('loginMessage');
-        messageDiv.className = 'message error';
-        messageDiv.textContent = error.message || 'Login failed. Please try again.';
-        messageDiv.style.display = 'block';
-    }
-}
 
         function handleLogout() {
             isAuthenticated = false;
@@ -1121,7 +1122,7 @@
                 });
             });
 
-            // ✅ FULL PASSWORD CHANGE HANDLER
+            // ✅ Password change handler (already correct)
             document.getElementById('saveSettingsBtn')?.addEventListener('click', async function(e) {
                 e.preventDefault();
                 
@@ -1172,7 +1173,6 @@
                         messageDiv.className = 'message success';
                         messageDiv.textContent = 'Password updated successfully! Please log in again.';
                         
-                        // Auto-logout after 2 seconds
                         setTimeout(() => {
                             localStorage.removeItem('work4u_admin_auth');
                             window.location.reload();

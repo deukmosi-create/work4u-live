@@ -7,31 +7,6 @@ import bcrypt
 import sendgrid
 from sendgrid.helpers.mail import Mail
 from datetime import datetime
-# --- Login Endpoint ---
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            return jsonify({"status": "error", "message": "Email and password required"}), 400
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT password_hash FROM admins WHERE email = ?', (email,))
-        admin = cursor.fetchone()
-        conn.close()
-
-        if admin and bcrypt.checkpw(password.encode('utf-8'), admin['password_hash']):
-            return jsonify({"status": "success", "message": "Login successful"})
-        else:
-            return jsonify({"status": "error", "message": "Invalid email or password"}), 401
-
-    except Exception as e:
-        logger.error(f"Login error: {e}")
-        return jsonify({"status": "error", "message": "Server error"}), 500
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -92,10 +67,11 @@ def init_db():
         if "duplicate column name" not in str(e):
             logger.error(f"Error adding status column: {e}")
     
-    default_email = "admin@work4u.com"
-    default_password = "admin123"
-    cursor.execute("SELECT COUNT(*) FROM admins WHERE email = ?", (default_email,))
+    # Only create default admin if no admins exist
+    cursor.execute("SELECT COUNT(*) FROM admins")
     if cursor.fetchone()[0] == 0:
+        default_email = "admin@work4u.com"
+        default_password = "admin123"
         hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt())
         cursor.execute('INSERT INTO admins (username, email, password_hash) VALUES (?, ?, ?)',
                        ("admin", default_email, hashed_pw))
@@ -114,7 +90,33 @@ def serve_public_site():
 def serve_admin_dashboard():
     return send_from_directory('.', 'admin.html')
 
-# ✅ SendGrid Plain Text Email Function (unchanged)
+# ✅ NEW: Login endpoint
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({"status": "error", "message": "Email and password required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT password_hash FROM admins WHERE email = ?', (email,))
+        admin = cursor.fetchone()
+        conn.close()
+
+        if admin and bcrypt.checkpw(password.encode('utf-8'), admin['password_hash']):
+            return jsonify({"status": "success", "message": "Login successful"})
+        else:
+            return jsonify({"status": "error", "message": "Invalid email or password"}), 401
+
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({"status": "error", "message": "Server error"}), 500
+
+# ✅ SendGrid Plain Text Email Function
 def send_email(to_email, subject, body):
     if not SENDGRID_API_KEY:
         logger.warning("SendGrid API key not set. Skipping email.")
@@ -135,7 +137,7 @@ def send_email(to_email, subject, body):
         logger.error(f"SendGrid email failed: {e}")
         return False
 
-# ✅ NEW: SendGrid HTML Email Function
+# ✅ SendGrid HTML Email Function
 def send_email_html(to_email, subject, html_content):
     if not SENDGRID_API_KEY:
         logger.warning("SendGrid API key not set. Skipping email.")
@@ -188,13 +190,12 @@ Best regards,
 Work4U Recruitment System"""
     return send_email(ADMIN_EMAIL, "New Application Received", body)
 
-# ✅ UPDATED: Approval email now uses HTML with bold headings
 def send_approval_email(first_name, last_name, email):
     full_name = f"{first_name} {last_name}"
     body_html = f"""
     <p>Dear {full_name},</p>
 
-    <p>We are excited to inform you that your application has been approved — welcome on board!</p>
+    <p>We are excited to inform you that your application has been approved — welcome on board! 🌟</p>
 
     <p><strong>About the Role</strong><br>
     As a chat moderator, your role is to engage with customers through our secure web-based platform. You will be replying to messages from users in English, keeping conversations fun, engaging, and creative. Many of these chats may be of a flirty or adult nature, so applicants must feel comfortable handling such conversations while maintaining professionalism and consistency.</p>
@@ -211,7 +212,7 @@ def send_approval_email(first_name, last_name, email):
     </ul>
 
     <p><strong>Work Hours</strong><br>
-    You will have the freedom to choose your shifts, but please note that our busiest hours are at peak times of night. Weekend shifts are especially high in traffic and highly recommended for maximizing your earnings. We ask all moderators to commit to a minimum of 15 hours per week.</p>
+    You will have the freedom to choose your shifts, but please note that our busiest hours are at peak times of night. Weekend shifts are especially high in traffic and highly recommended for maximizing your earnings. We ask all moderators to commit to a minimum of 12 hours per week, booked in one-hour shifts.</p>
 
     <p><strong>Pay Structure</strong><br>
     Payment: €0.10 (10 Euro cents) per sent message.<br>
@@ -233,19 +234,19 @@ def send_approval_email(first_name, last_name, email):
 
     <p><strong>Next Steps</strong><br>
     To proceed, you’ll need to complete a short test to demonstrate your level of English.<br>
-    Simply click the link below to get started:<br>
-    <a href="https://forms.gle/iai3wEkJFjJa6YUD9">https://forms.gle/iai3wEkJFjJa6YUD9</a><br>
+    👉 Simply click the link below to get started:<br>
+    <a href="https://forms.gle/YvgBWxriV2hPfn82A">https://forms.gle/YvgBWxriV2hPfn82A</a><br>
     Once you have submitted your answers, our team will review them carefully. You will receive a response within 3 business days regarding the outcome and the next stage of onboarding.</p>
 
     <p>We are thrilled to have you with us and can’t wait to see you succeed as part of our ChatPlatform team.</p>
 
-    <p>Welcome aboard, and let’s get started!</p>
+    <p>Welcome aboard, and let’s get started! 🚀</p>
 
     <p>Warm regards,<br>
     Work4U<br>
     Recruitment Team</p>
     """
-    return send_email_html(email, "Your Application Status", body_html)
+    return send_email_html(email, "Your Application Has Been Approved", body_html)
 
 def send_rejection_email(first_name, last_name, email):
     full_name = f"{first_name} {last_name}"
