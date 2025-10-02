@@ -7,6 +7,31 @@ import bcrypt
 import sendgrid
 from sendgrid.helpers.mail import Mail
 from datetime import datetime
+# --- Login Endpoint ---
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({"status": "error", "message": "Email and password required"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT password_hash FROM admins WHERE email = ?', (email,))
+        admin = cursor.fetchone()
+        conn.close()
+
+        if admin and bcrypt.checkpw(password.encode('utf-8'), admin['password_hash']):
+            return jsonify({"status": "success", "message": "Login successful"})
+        else:
+            return jsonify({"status": "error", "message": "Invalid email or password"}), 401
+
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({"status": "error", "message": "Server error"}), 500
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

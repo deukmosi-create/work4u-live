@@ -1020,23 +1020,34 @@
             }
         }
 
-        function handleLogin(email, password) {
-            if (email === 'admin@work4u.com' && password === 'admin123') {
-                isAuthenticated = true;
-                localStorage.setItem('work4u_admin_auth', 'true');
-                loginPage.style.display = 'none';
-                dashboard.style.display = 'block';
-                showToast('Login successful!', 'success');
-                loadApplicationsFromBackend();
-                updateStats();
-                initCharts();
-            } else {
-                const messageDiv = document.getElementById('loginMessage');
-                messageDiv.className = 'message error';
-                messageDiv.textContent = 'Invalid email or password';
-                messageDiv.style.display = 'block';
-            }
+        async function handleLogin(email, password) {
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            isAuthenticated = true;
+            localStorage.setItem('work4u_admin_auth', 'true');
+            loginPage.style.display = 'none';
+            dashboard.style.display = 'block';
+            showToast('Login successful!', 'success');
+            loadApplicationsFromBackend();
+            updateStats();
+            initCharts();
+        } else {
+            throw new Error(result.message || 'Invalid credentials');
         }
+    } catch (error) {
+        const messageDiv = document.getElementById('loginMessage');
+        messageDiv.className = 'message error';
+        messageDiv.textContent = error.message || 'Login failed. Please try again.';
+        messageDiv.style.display = 'block';
+    }
+}
 
         function handleLogout() {
             isAuthenticated = false;
