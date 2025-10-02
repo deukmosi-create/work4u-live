@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+import sqlite3
 import os
 import logging
 import bcrypt
@@ -15,17 +15,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app, origins=["*", "https://*.onrender.com"])
 
-# Database configuration - PostgreSQL for production, SQLite for local development
-if os.environ.get('DATABASE_URL'):
-    # Production: Use PostgreSQL (Render)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace("postgres://", "postgresql://", 1)
-else:
-    # Development: Use SQLite locally
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///applications.db'
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
+# Database configuration
+DATABASE = '/tmp/applications.db'
 
 # Email configuration (SendGrid)
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
@@ -36,41 +27,58 @@ ADMIN_EMAIL = FROM_EMAIL
 VALID_LANGUAGES = ['English', 'Spanish', 'French', 'German', 'Chinese', 'Arabic', 'Portuguese', 'Russian', 'Japanese', 'Korean']
 VALID_AVAILABILITY = ['Day', 'Night', 'Both']
 
-# Database Models
-class Application(db.Model):
-    __tablename__ = 'applications'
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
-    experience_level = db.Column(db.String(10))
-    language = db.Column(db.String(50))
-    availability = db.Column(db.String(20))
-    motivation = db.Column(db.Text)
-    status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Admin(db.Model):
-    __tablename__ = 'admins'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
-    with app.app_context():
-        db.create_all()
-        
-        # Create default admin if none exists
-        if Admin.query.count() == 0:
-            default_email = "admin@work4u.com"
-            default_password = "admin123"
-            hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt())
-            admin = Admin(username="admin", email=default_email, password_hash=hashed_pw)
-            db.session.add(admin)
-            db.session.commit()
-            logger.info(f"Created default admin: {default_email}")
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS applications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            experience_level TEXT,
+            language TEXT,
+            availability TEXT,
+            motivation TEXT CHECK(length(motivation) <= 500),
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    try:
+        cursor.execute("ALTER TABLE applications ADD COLUMN status TEXT DEFAULT 'pending';")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e):
+            logger.error(f"Error adding status column: {e}")
+    
+    # Only create default admin if no admins exist
+    cursor.execute("SELECT COUNT(*) FROM admins")
+    if cursor.fetchone()[0] == 0:
+        default_email = "admin@work4u.com"
+        default_password = "admin123"
+        hashed_pw = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt())
+        cursor.execute('INSERT INTO admins (username, email, password_hash) VALUES (?, ?, ?)',
+                       ("admin", default_email, hashed_pw))
+        logger.info(f"Created default admin: {default_email}")
+    
+    conn.commit()
+    conn.close()
 
 # ✅ Serve public hiring site
 @app.route('/')
@@ -93,9 +101,13 @@ def login():
         if not email or not password:
             return jsonify({"status": "error", "message": "Email and password required"}), 400
 
-        admin = Admin.query.filter_by(email=email).first()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT password_hash FROM admins WHERE email = ?', (email,))
+        admin = cursor.fetchone()
+        conn.close()
 
-        if admin and bcrypt.checkpw(password.encode('utf-8'), admin.password_hash):
+        if admin and bcrypt.checkpw(password.encode('utf-8'), admin['password_hash']):
             return jsonify({"status": "success", "message": "Login successful"})
         else:
             return jsonify({"status": "error", "message": "Invalid email or password"}), 401
@@ -274,47 +286,34 @@ def submit_application():
             return jsonify({"status": "error", "message": "Invalid email format"}), 400
 
         motivation = str(data.get('motivation', ''))[:500]
+        now = datetime.now()
 
-        new_app = Application(
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            email=data['email'],
-            experience_level=data['experience_level'],
-            language=data['language'],
-            availability=data['availability'],
-            motivation=motivation
-        )
-        
-        db.session.add(new_app)
-        db.session.commit()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO applications 
+            (first_name, last_name, email, experience_level, language, availability, motivation, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (data['first_name'], data['last_name'], data['email'], data['experience_level'],
+              data['language'], data['availability'], motivation, now))
+        app_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
 
         send_confirmation_email(data['first_name'], data['last_name'], data['email'])
-        send_admin_notification(data['first_name'], data['last_name'], data['email'], data['language'], new_app.created_at)
+        send_admin_notification(data['first_name'], data['last_name'], data['email'], data['language'], now)
         return jsonify({"status": "success", "message": "Submitted"})
     except Exception as e:
         logger.error(f"Submission error: {e}")
-        db.session.rollback()
         return jsonify({"status": "error", "message": "Server error"}), 500
 
 @app.route('/applications', methods=['GET'])
 def get_applications():
     try:
-        apps = Application.query.order_by(Application.created_at.desc()).all()
-        result = []
-        for app in apps:
-            app_dict = {
-                'id': app.id,
-                'first_name': app.first_name,
-                'last_name': app.last_name,
-                'email': app.email,
-                'experience_level': app.experience_level,
-                'language': app.language,
-                'availability': app.availability,
-                'motivation': app.motivation,
-                'status': app.status,
-                'created_at': app.created_at.isoformat() if app.created_at else None
-            }
-            result.append(app_dict)
+        conn = get_db_connection()
+        apps = conn.execute('SELECT * FROM applications ORDER BY created_at DESC').fetchall()
+        result = [dict(app) for app in apps]
+        conn.close()
         return jsonify(result)
     except Exception as e:
         logger.error(f"Fetch error: {e}")
@@ -323,35 +322,41 @@ def get_applications():
 @app.route('/applications/<int:app_id>/approve', methods=['POST'])
 def approve_application(app_id):
     try:
-        app = Application.query.get(app_id)
+        conn = get_db_connection()
+        app = conn.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
         if not app:
+            conn.close()
             return jsonify({"status": "error", "message": "Application not found"}), 404
-        
-        app.status = "approved"
-        db.session.commit()
-        
-        send_approval_email(app.first_name, app.last_name, app.email)
+        first_name = app['first_name']
+        last_name = app['last_name']
+        email = app['email']
+        conn.execute('UPDATE applications SET status = "approved" WHERE id = ?', (app_id,))
+        conn.commit()
+        conn.close()
+        send_approval_email(first_name, last_name, email)
         return jsonify({"status": "success", "message": "Application approved and email sent"})
     except Exception as e:
         logger.error(f"Approve error: {e}")
-        db.session.rollback()
         return jsonify({"status": "error", "message": "Approve failed"}), 500
 
 @app.route('/applications/<int:app_id>/reject', methods=['POST'])
 def reject_application(app_id):
     try:
-        app = Application.query.get(app_id)
+        conn = get_db_connection()
+        app = conn.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
         if not app:
+            conn.close()
             return jsonify({"status": "error", "message": "Application not found"}), 404
-        
-        app.status = "rejected"
-        db.session.commit()
-        
-        send_rejection_email(app.first_name, app.last_name, app.email)
+        first_name = app['first_name']
+        last_name = app['last_name']
+        email = app['email']
+        conn.execute('UPDATE applications SET status = "rejected" WHERE id = ?', (app_id,))
+        conn.commit()
+        conn.close()
+        send_rejection_email(first_name, last_name, email)
         return jsonify({"status": "success", "message": "Application rejected and email sent"})
     except Exception as e:
         logger.error(f"Reject error: {e}")
-        db.session.rollback()
         return jsonify({"status": "error", "message": "Reject failed"}), 500
 
 @app.route('/change-password', methods=['POST'])
@@ -370,27 +375,22 @@ def change_password():
         if len(new_password) < 6:
             return jsonify({"status": "error", "message": "Password too short"}), 400
 
-        admin = Admin.query.filter_by(email=admin_email).first()
-        if not admin or not bcrypt.checkpw(current_password.encode('utf-8'), admin.password_hash):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, password_hash FROM admins WHERE email = ?', (admin_email,))
+        admin = cursor.fetchone()
+        if not admin or not bcrypt.checkpw(current_password.encode('utf-8'), admin['password_hash']):
+            conn.close()
             return jsonify({"status": "error", "message": "Invalid current password"}), 401
 
         new_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
-        admin.password_hash = new_hash
-        db.session.commit()
+        cursor.execute('UPDATE admins SET password_hash = ? WHERE id = ?', (new_hash, admin['id']))
+        conn.commit()
+        conn.close()
         return jsonify({"status": "success", "message": "Password updated"})
     except Exception as e:
         logger.error(f"Password change error: {e}")
-        db.session.rollback()
         return jsonify({"status": "error", "message": "Server error"}), 500
-
-# Health check endpoint to prevent sleep (optional)
-@app.route('/health')
-def health_check():
-    return {'status': 'healthy'}, 200
-@app.route('/init-db')
-def init_database_route():
-    init_db()
-    return "✅ Database tables created successfully!"
 
 if __name__ == '__main__':
     init_db()
